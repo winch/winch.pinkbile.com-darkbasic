@@ -1,0 +1,129 @@
+`intro related functions
+
+function show_options()
+  `show the options screen
+  local i as integer : local time as integer : delay as integer
+  delay = 200
+  `9x7
+  `get the blue box image
+  create bitmap 1,7,5
+  ink rgb(0,0,255),0
+  box 0,0,7,5
+  ink rgb(255,255,255),0
+  get image 10001,0,0,7,5,1
+  delete bitmap 1
+  
+  cls
+  `31x50
+  time = timer()
+  show_options_squares()
+  
+  load image "image\03.png",10002,1
+  paste image 10002,(screen width()/2) - (image width(10002)/2),150
+  load image "image\03a.png",10003,1
+  paste image 10003,(screen width()/2) - (image width(10003)/2),251
+  sync
+  `use sound?
+  `repeat
+  `  if timer() - time > delay
+  `    cls
+  `    show_options_squares()
+  `    paste image 10002,(screen width()/2) - (image width(10002)/2),150
+  `    paste image 10003,(screen width()/2) - (image width(10003)/2),251
+  `    sync
+  `    time = timer()
+  `  endif
+  `  i = scancode()
+  `until i = 21 or i = 49
+  `if i = 21 then game.sound = 1 else game.sound = 0
+  game.sound = 0
+  `repeat : until scancode() = 0
+  load image "image\03b.png",10004,1
+  paste image 10004,(screen width()/2) - (image width(10004)/2),350
+  sync
+  `skill level?
+  repeat
+    if timer() - time > delay
+      cls
+      show_options_squares()
+      paste image 10002,(screen width()/2) - (image width(10002)/2),150
+      paste image 10003,(screen width()/2) - (image width(10003)/2),251
+      paste image 10004,(screen width()/2) - (image width(10004)/2),350
+      sync
+      time = timer()
+    endif
+    `1=2 2=3 3=4
+    i = scancode()
+  until i = 2 or i = 3 or i = 4
+  game.skill = i - 1
+  repeat : until scancode() = 0
+  load image "image\03c.png",10005,1
+  paste image 10005,(screen width()/2) - (image width(10005)/2),450
+  sync
+  repeat
+    if timer() - time > delay
+      cls
+      show_options_squares()
+      paste image 10002,(screen width()/2) - (image width(10002)/2),150
+      paste image 10003,(screen width()/2) - (image width(10003)/2),251
+      paste image 10004,(screen width()/2) - (image width(10004)/2),350
+      paste image 10005,(screen width()/2) - (image width(10005)/2),450
+      sync
+      time = timer()
+    endif  
+  until scancode()
+  repeat : until scancode() = 0
+  
+  for i = 10001 to 10005
+    delete image i
+  next i
+  cls
+endfunction
+
+function show_options_squares()
+  `draws the blue squares to the screen
+  local x as integer : local y as integer
+  local xx as integer : local yy as integer
+  yy = 3
+  for y = 0 to 84
+    xx = 260
+    for x = 0 to 31
+      if rnd(1) = 1 then paste image 10001,xx,yy
+      inc xx,9
+    next x
+    inc yy,7
+  next y
+endfunction  
+  
+
+function show_intro()
+  `shows the intro screen
+  local i as integer
+  load image "image\00.png",10001,1
+  paste image 10001,0,0
+  sync
+  repeat
+    `y=21 n=49
+    i = scancode()
+  until i = 21 or i = 49
+  repeat : until scancode() = 0
+  delete image 10001
+endfunction i
+
+function show_instructions()
+  `shows the instructions
+  load image "image\01.png",10001,1
+  cls
+  paste image 10001,0,0
+  sync
+  repeat : until scancode()
+  repeat : until scancode() = 0
+  delete image 10001
+  load image "image\02.png",10001,1
+  cls
+  paste image 10001,0,0
+  sync
+  repeat : until scancode()
+  repeat : until scancode() = 0
+  delete image 10001
+endfunction

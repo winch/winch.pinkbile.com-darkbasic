@@ -1,0 +1,28 @@
+`msgbox function
+`Code by the_winch
+`Use as you wish.
+
+function msgbox(msg as string,opts as integer,title as string)
+`returns -1 if fail (all dll slots taken)
+local dll_num as integer : local hwnd as integer
+local response as integer
+dll_num = free_dll()
+if dll_num > 0
+  load dll "user32.dll",dll_num
+    hwnd = call dll (dll_num,"GetActiveWindow")
+    response = call dll (dll_num,"MessageBoxA",hwnd,msg,title,opts)
+  delete dll dll_num
+else
+  response = -1
+endif
+print dll_num
+endfunction response
+
+function free_dll()
+local i as integer : stop as integer
+repeat
+  inc i
+  if i < 256 then if dll exist(i)=0 then stop = 1
+until stop = 1 or i > 255
+if i > 255 then i = 0
+endfunction i

@@ -1,0 +1,52 @@
+`functions that draw stuff to the screen
+
+function draw_text()
+  `draws the text at the top of the screen
+  text 180,16,str$(game.sheet)
+  text 400,16,str$(game.lives)
+  text 600,16,str$(game.score)
+endfunction
+
+function draw_boot()
+  `draws the boot on the screen
+  paste image 5,112+(boot(0).x*40),40+(boot(0).y*38),1
+  if game.sheet > 1 then paste image 5,112+(boot(1).x*40),40+(boot(1).y*38),1
+  if game.sheet > 2 then paste image 5,112+(boot(2).x*40),40+(boot(2).y*38),1
+  if game.sheet > 3 then paste image 5,112+(boot(3).x*40),40+(boot(3).y*38),1
+endfunction
+
+function draw_player()
+  `pastes the player image to the screen
+  local x as integer : local y as integer
+  x = 112+(player.x*40)
+  y = 40+(player.y*38)
+  paste image 10,x,y
+endfunction
+
+function draw_map()
+  x as integer : xx as integer : s as string
+  y as integer : yy as integer
+  paste image 11,0,0
+  yy = 40 : `34
+  for y = 0 to 13
+    xx = 112
+    for x = 0 to 13
+      select map(x,y)
+        case 1 : paste image 1,xx,yy : endcase
+        case 2 : paste image 2,xx,yy : endcase
+        case 3
+          paste image 3,xx,yy
+          s = tnt_time()
+          if s = "00"
+            player_loselife()
+            exitfunction
+          endif
+          text xx+8,yy,s
+        endcase
+        case 4 : paste image 4,xx,yy : endcase
+      endselect
+      inc xx,40
+    next x
+    inc yy,38
+  next y
+endfunction

@@ -1,0 +1,24 @@
+version=DBP1.00
+;****DarkBASIC Professional Project****
+;[Created by BLUE IDE - 04]
+;Basic project details
+project name=space_inv
+;
+;Files
+final source=_Temp.dbsource
+main=space_inv.dba
+include1=msgbox.dba
+executable=space_inv.exe
+build type=
+CLI=NO
+compression=NO
+encryption=NO
+media root path=
+;====Other Settings====
+app title=DarkBASIC Pro Project
+graphics mode=window
+fullscreen resolution=640x480x16
+window resolution=640x480
+compression=NO
+encryption=NO
+;====Project Organisation====

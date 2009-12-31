@@ -1,0 +1,85 @@
+`boot releated functions
+
+function boot_control()
+  `moves the boot on the screen in a random direction
+  local direction as integer : local x as integer : local y as integer
+  `1 = left : 2 = right
+  `3 = up   : 4 = down
+  `first boot
+  boot_move(0,rnd(3)+1)
+  if game.sheet > 1 then boot_move(1,rnd(3)+1)
+  if game.sheet > 2 then boot_move(2,rnd(3)+1)
+  if game.sheet > 3 then boot_move(3,rnd(3)+1)
+endfunction
+
+function boot_hit()
+  `checks if a boot has hit the player
+  if player.x = boot(0).x and player.y = boot(0).y then player_loselife() : exitfunction
+  if game.sheet > 1
+    if player.x = boot(1).x and player.y = boot(1).y then player_loselife() : exitfunction
+  endif
+  if game.sheet > 2
+    if player.x = boot(2).x and player.y = boot(2).y then player_loselife() : exitfunction
+  endif
+  if game.sheet > 3
+    if player.x = boot(3).x and player.y = boot(3).y then player_loselife() : exitfunction
+  endif
+endfunction
+
+function boot_move(num as integer,direc as integer)
+  `moves the boot in the required direction if possible
+  local x as integer : local y as integer
+  `3 = up   : 4 = down
+  `move left
+  if direc = 1
+    x = boot(num).x - 1
+    if x > -1
+      if map(x,boot(num).y) = 1 or map(x,boot(num).y) = 2
+        boot(num).x = x
+      else
+        if x = player.x and boot(num).y = player.y
+          boot(num).x = x
+        endif
+      endif
+    endif
+  endif
+  `move right
+  if direc = 2
+    x = boot(num).x + 1
+    if x < 14
+      if map(x,boot(num).y) = 1 or map(x,boot(num).y) = 2
+        boot(num).x = x
+      else
+        if x = player.x and boot(num).y = player.y
+          boot(num).x = x
+        endif
+      endif
+    endif
+  endif
+  `move up
+  if direc = 3
+    y = boot(num).y - 1
+    if y > -1
+      if map(boot(num).x,y) = 1 or map(boot(num).x,y) = 2
+        boot(num).y = y
+      else
+        if boot(num).x = player.x and y = player.y
+          boot(num).y = y
+        endif
+      endif
+    endif
+  endif
+  `move down
+  if direc = 4
+    y = boot(num).y + 1
+    if y < 14
+      if map(boot(num).x,y) = 1 or map(boot(num).x,y) = 2
+        boot(num).y = y
+      else
+        if boot(num).x = player.x and y = player.y
+          boot(num).y = y
+        endif
+      endif
+    endif
+  endif
+endfunction

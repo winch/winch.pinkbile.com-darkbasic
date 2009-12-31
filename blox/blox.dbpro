@@ -1,0 +1,50 @@
+version=DBP1.00
+;****DarkBASIC Professional Project****
+;[Created by BLUE IDE - version 1.0.1]
+;Basic project details
+project name=blox
+project comments=
+;
+;Files
+final source=_Temp.dbsource
+main=source.dba
+include1=menu.dba
+include2=highscore.dba
+executable=blox.exe
+build type=exe
+ 
+;Debug Mode YES/NO
+CLI=NO
+ 
+;====Media Settings====
+compression=NO
+encryption=NO
+media root path=C:\Program Files\Dark Basic Software\Dark Basic Professional\Projects\blox\
+ 
+;====Included Media====
+ 
+;> Cursors
+ 
+;> Icons
+ 
+;====Other Settings====
+app title=DarkBASIC Pro Project
+graphics mode=window
+fullscreen resolution=640x480x16
+window resolution=640x480
+compression=NO
+encryption=NO
+ 
+;====Version Information====
+vercomments=
+vercompany=
+vercopyright=
+verfiledesc=
+verfilename=
+verfilenumber=
+verinternal=
+verproduct=
+verproductnumber=
+vertrademark=
+ 
+;====Project Organisation====

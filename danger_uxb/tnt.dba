@@ -1,0 +1,48 @@
+`tnt releated function
+
+function tnt_time()
+  `returns the ammount of time left
+  local out as string : i as integer
+  i = timer() - tnt.time
+  i = i / 100
+  if game.skill = 1
+    i = 60 - i
+  else
+    i = 40 - i
+  endif
+  if i < 10 then out = "0"
+  out = out + str$(i)
+endfunction out
+
+function new_tnt()
+  `puts a new tnt on the map
+  local i as integer : local c as integer : local last as integer
+  local x as integer : local y as integer : local xx as integer : local yy as integer
+  last = 0 : `1 if it's the last tnt on the map
+  c = rnd(tnt.skull-1)+1
+  i = 0
+  for yy = 0 to 13
+    for xx = 0 to 13
+      if map(xx,yy) = 4
+        inc i
+        if i = c
+          x = xx
+          y = yy
+        endif
+      endif
+    next xx
+  next yy
+  map(x,y) = 3
+  dec tnt.skull
+  tnt.time = timer()
+  dec tnt.left
+  player.direc = 0
+  `if there are no tnt left the sheet is finsished
+  if tnt.left = -1
+    `increase sheet number
+    inc game.sheet
+    if game.sheet mod 5 = 0 then inc game.lives
+    bonus()
+    last = 1
+  endif
+endfunction last

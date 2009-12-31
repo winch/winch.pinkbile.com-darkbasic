@@ -1,0 +1,579 @@
+`Project: space_inv
+`Created: 11/12/2003
+`Code by the_winch : d_d@glay.org : http://winch.dbpcommunity.com/
+
+sync on : disable escapekey : randomize timer()
+`temp media
+create bitmap 1,50,50
+box 0,0,50,50
+get image 1,0,0,30,30,1
+get image 5,0,0,5,5,1
+get image 10,0,0,20,20,1
+get image 11,0,0,20,20,1
+get image 12,0,0,20,20,1
+get image 13,0,0,20,20,1
+get image 14,0,0,20,20,1
+delete bitmap 1
+
+`Image numbers
+`1 = player
+`5 = bullet
+`10-14 = alien
+`14-20 = reserved for alien animation
+`101-3 = shields
+
+`Sprite numbers
+`1 = player
+`5 = player bullet
+`10-19 = alien top layer
+`20-29 = alien
+`30-39 = alien
+`40-49 = alien
+`50-59 = alien bottom layer
+`75-80 = alien bullets
+`101-3 = shields
+
+type player_t
+  fps as integer
+  x as float
+  test as integer
+  shield_offset as integer
+  score as integer
+  high_score as integer
+  lives as integer
+  game_over as integer
+endtype
+global player as player_t
+
+type alien_t
+  left as integer
+  right as integer
+  offset as integer
+  direction as integer
+  last_move as integer
+  last_fire as integer
+  moves as integer
+  speed as integer
+  fire_rate as integer
+  fire_chance as integer
+  drop_rate as integer
+  drop as integer
+  bullet_energy as integer
+endtype
+global alien as alien_t
+
+type bullet_t
+  y as float
+  energy as integer
+endtype
+global dim bullet(6) as bullet_t
+`0=player bullet 1 to 6 enemy bullets
+`y=bullet ypos
+`energy=number of shield pixels bullet can destroy
+
+global dim shield1(49,39) as integer
+global dim shield2(49,39) as integer
+global dim shield3(49,39) as integer
+`0=black 1=white
+
+`shield colours
+global black as dword
+black = rgb(0,0,0)
+global white as dword
+white = rgb(255,255,255)
+
+stop as integer
+
+load_scores()
+
+repeat
+new_game() : game()
+if player.score > player.high_score
+  player.high_score = player.score
+  msgbox("You beat the high score!",0,"space_inv")
+  save_scores()
+endif
+stop = msgbox("Game over"+chr$(10)+"Play again?",36,"space_inv")
+until stop = 7
+
+save_scores()
+`cleanup
+for stop = 1 to 103
+  if sprite exist(stop) then delete sprite stop
+  if image exist(stop) then delete image stop
+next stop
+undim bullet()
+undim shield()
+end
+
+`+++++++++++
+`+functions+
+`+++++++++++
+
+function game()
+`main game loop
+repeat
+  cls 0
+  `player.fps = screen fps()
+  player.fps = (player.fps + screen fps()) / 2
+  control_player()
+  move_bullets()
+  shield_check_bullets()
+  if timer() - alien.last_move > alien.speed then move_aliens()
+  if timer() - alien.last_fire > alien.fire_rate then alien_fire()
+  text 0,0,"Score :"+str$(player.score)+" Lives:"+str$(player.lives)
+  text 635-text width("High Score: "+str$(player.high_score)),0,"High Score: "+str$(player.high_score)
+  `text 0,15,str$(player.fps)
+  sync
+  if escapekey() then inc player.game_over
+until player.game_over > 0
+endfunction
+
+function load_scores()
+`loads the highscores from score.txt
+local length as integer : local s as string : local i as integer : in as integer
+if file exist("score.txt")
+  open to read 1,"score.txt"
+    read byte 1,length
+      for i = 0 to length
+        read byte 1,in
+        s = s + chr$(in)
+      next i
+  close file 1
+  player.high_score = val(s)
+else
+  new_scores()
+endif
+endfunction
+
+function new_scores()
+`creates a new score.txt file
+local s as string
+if file exist("score.txt") then delete file "score.txt"
+s = str$(0)
+open to write 1,"score.txt"
+  write byte 1,len(s)
+  write byte 1,asc(s)
+close file 1
+player.high_score = 0
+endfunction
+
+function save_scores()
+`saves highscores to score.txt
+local length as integer : local i as integer : local s as string
+if file exist("score.txt") then delete file "score.txt"
+open to write 1,"score.txt"
+  s = str$(player.high_score)
+  length = len(s)
+  write byte 1,length
+  for i = 1 to length
+    write byte 1,asc(mid$(s,i))
+  next i
+close file 1 
+endfunction
+
+function drop_aliens()
+`moves the aliens down
+local i as integer
+for i = 10 to 59
+  if sprite exist(i)
+    sprite i,sprite x(i),(sprite y(i)+20),sprite image(i)
+  endif
+next i
+shield_check_aliens() : check_alien_landing()
+endfunction
+
+function check_alien_landing()
+`checks if the lowest alien is has landed
+local i as integer
+for i = 10 to 59
+  if sprite exist(i)
+    if sprite y(i) > (sprite y(1)-10) then inc player.game_over
+  endif
+next i
+endfunction
+
+function shield_check_aliens()
+`checks if the aliens have moved down into the shield space and if they
+`have clears the shield area where they are.
+local i as integer : low_y as integer
+local x as integer : local y as integer
+for i = 10 to 59
+  if sprite exist(i)
+    if sprite y(i) > low_y then low_y = sprite y(i)
+  endif
+next i
+inc low_y,20 :`increase by alien image height to get y at bottom of sprite
+if low_y > player.shield_offset and low_y <= 400
+  dec low_y,player.shield_offset
+  for x = 0 to 49
+    for y = low_y to 0 step -1 
+      shield1(x,y) = 0
+      shield2(x,y) = 0
+      shield3(x,y) = 0
+    next x
+  next x
+endif
+shield_generate(1) : shield_generate(2) : shield_generate(3)
+endfunction
+
+function shield_check_bullets()
+`check if there is a bullet in the shield area
+`shield1(103,360,153,400)
+`shield2(295,360,345,400)
+`shield3(487,360,537,300)
+`modifies shield(x,y) accordingly and calls shield_generate if it is needed
+local x as integer : local y as integer : local bx as integer : local by as integer
+local dirty1 as integer : local dirty2 as integer : local dirty3 as integer : local shield as integer
+local i as integer
+dirty1 = 0 : dirty2=0 : dirty3 =0
+`check player bullet = 5
+if sprite exist(5)
+  if bullet(0).y > player.shield_offset and bullet(0).y < 400
+    `check with shield1
+    bx = sprite x(5)
+    by = sprite y(5)-player.shield_offset
+    dec bx,2  
+    if (bx+9) > 103 and bx < 153 then shield = 1 : dec bx,103
+    if (bx+9) > 295 and bx < 345 then shield = 2 : dec bx,295
+    if (bx+9) > 487 and bx < 537 then shield = 3 : dec bx,487
+    for y = by+2 to by-7 step -1
+      for x = bx to bx+9
+        if x => 0 and x <= 49 and y => 0 and y <= 39
+          if bullet(0).energy > 0
+            select shield
+              case 1
+                if shield1(x,y) = 1
+                  shield1(x,y) = 0
+                  dec bullet(0).energy
+                  dirty1 = 1
+                endif
+              endcase
+              case 2
+                if shield2(x,y) = 1
+                  shield2(x,y) = 0
+                  dec bullet(0).energy
+                  dirty2 = 1
+                endif
+              endcase
+              case 3
+                if shield3(x,y) = 1
+                  shield3(x,y) = 0
+                  dec bullet(0).energy
+                  dirty3 = 1
+                endif
+              endcase
+            endselect
+          endif
+        endif
+      next x
+    next y
+  endif
+  if bullet(0).energy = 0 then delete sprite 5  
+endif
+`check alien bullets = 75-80
+shield = 0
+for i = 75 to 80
+  if sprite exist(i)
+    if bullet(i-74).y > player.shield_offset and bullet(i-74).y < 400
+      bx = sprite x(i) : by = sprite y(i)-player.shield_offset
+      dec bx,2
+      if (bx+9) > 103 and bx < 153 then shield = 1 : dec bx,103
+      if (bx+9) > 295 and bx < 345 then shield = 2 : dec bx,295
+      if (bx+9) > 487 and bx < 537 then shield = 3 : dec bx,487
+      for y = by-7 to by+2
+        for x = bx to bx+9
+          if x => 0 and x <= 49 and y => 0 and y <= 39
+            if bullet(i-74).energy > 0
+              select shield
+                case 1
+                  if shield1(x,y) = 1
+                    shield1(x,y) = 0
+                    dec bullet(i-74).energy
+                    dirty1 = 1
+                  endif
+                endcase
+                case 2
+                  if shield2(x,y) = 1
+                    shield2(x,y) = 0
+                    dec bullet(i-74).energy
+                    dirty2 = 1
+                  endif
+                endcase
+                case 3
+                  if shield3(x,y) = 1
+                    shield3(x,y) = 0
+                    dec bullet(i-74).energy
+                    dirty3 = 1
+                  endif
+                endcase
+              endselect
+            endif
+          endif
+        next x
+      next y
+    endif
+    if bullet(i-74).energy = 0 then delete sprite i  
+  endif
+next i
+if dirty1 > 0 then shield_generate(1)
+if dirty2 > 0 then shield_generate(2)
+if dirty3 > 0 then shield_generate(3)
+endfunction
+
+function shield_generate(shield as integer)
+`uses shieldn(x,y) to make the shield images
+local x as integer : local y as integer : length as integer : local i as integer : local in as integer
+if memblock exist(1) = 0 then shield_generate_memblocks()
+in = 12
+for y = 0 to 39
+  for x = 0 to 49
+    if shield = 1 then i = shield1(x,y)
+    if shield = 2 then i = shield2(x,y)
+    if shield = 3 then i = shield3(x,y)
+    if i = 0
+      write memblock dword shield,in,black : inc in,4
+    else
+      write memblock dword shield,in,white : inc in,4
+    endif
+  next x
+next y
+if image exist(100+shield) then delete image 100+shield
+make image from memblock 100+shield,shield
+if shield = 1 then sprite 101,103,360,101
+if shield = 2 then sprite 102,295,360,102
+if shield = 3 then sprite 103,487,360,103
+player.shield_offset = 360
+endfunction
+
+function shield_generate_memblocks()
+`Creates the initial membock structure.
+local x as integer : local y as integer : length as integer
+x = 50 : y = 40 : length = (x*y)*4 : inc length,12
+make memblock 1,length
+make memblock 2,length
+make memblock 3,length
+write memblock dword 1,0,x : write memblock dword 1,4,y : write memblock dword 1,8,32
+write memblock dword 2,0,x : write memblock dword 2,4,y : write memblock dword 2,8,32
+write memblock dword 3,0,x : write memblock dword 3,4,y : write memblock dword 3,8,32
+endfunction
+
+function make_shields()
+`fills the shield arrays with the shield pattern so the shield image can
+`be generated
+local x as integer : local y as integer
+for x = 0 to 49
+  for y = 0 to 39
+    shield1(x,y) = 1
+    shield2(x,y) = 1
+    shield3(x,y) = 1
+  next y
+next x
+shield_generate(1) : shield_generate(2) : shield_generate(3)
+endfunction
+
+function player_hit()
+`this is called when player hit by a bullet
+local time
+if player.lives > 0
+  dec player.lives
+  sprite 1,(screen width()/2)-10,screen height()-35,1 : player.x = sprite x(1)
+  sync
+  `delete all bullets
+  if sprite exist(5) then delete sprite 5
+  for time = 75 to 80
+    if sprite exist(time) then delete sprite time
+  next time
+  time = timer()
+  repeat
+    cls
+    text 0,0,"Score :"+str$(player.score)+" Lives:"+str$(player.lives)
+    text 0,15,str$(screen fps())
+    sync
+  until timer()-time > 500
+else
+  `game over
+  inc player.game_over
+endif
+endfunction
+
+function move_bullets()
+local i as integer
+`Player bullet
+if sprite exist(5)
+  if sprite y(5) < 1
+    delete sprite 5
+  else
+    dec bullet(0).y,(300.0/player.fps)
+    sprite 5,sprite x(5),bullet(0).y,5
+    `check collision
+    for i = 10 to 59 : `aliens
+      if sprite exist(5)
+        if sprite hit(5,i)
+          delete sprite i : delete sprite 5
+          if i < 20 then inc player.score,50
+          if i > 19 and i < 30 then inc player.score,40
+          if i > 29 and i < 40 then inc player.score,30
+          if i > 39 and i < 50 then inc player.score,20
+          if i > 49 and i < 60 then inc player.score,10
+        endif
+      endif
+    next i
+    for i = 75 to 80 : `alien bullets
+      if sprite exist(5) then if sprite hit(5,i) then delete sprite i : delete sprite 5 : inc player.score,20
+    next i
+  endif
+endif
+`alien bullets
+for i = 75 to 80
+  if sprite exist(i)
+    if sprite y(i) > 480
+      delete sprite i
+    else
+      inc bullet(i-74).y,(300.0/player.fps)
+      sprite i,sprite x(i),bullet(i-74).y,5
+      `check collision with player
+      if sprite hit(i,1) then delete sprite i : player_hit()
+    endif
+  endif
+next i
+endfunction
+
+function alien_fire()
+`randomly fires a bullet from a random alien that has no aliens below it
+local i as integer : local check as integer
+local row as integer : local column as integer
+if rnd(alien.fire_chance) = 0
+  `check there is an alien to fire bullet
+  check = 0
+  for i = 10 to 59
+    inc check,sprite exist(i)
+  next i
+  if check > 0 :`there is at least 1 alien
+    check = 0
+    repeat
+      row = rnd(9)
+      for i = 50 to 10 step -10
+        if sprite exist(i+row) and check = 0
+          inc check
+          column = i
+        endif
+      next i
+    until check > 0
+    check = 0
+    for i = 75 to 80
+      if check = 0
+        if sprite exist(i)=0
+          sprite i,sprite x(row+column)+10,sprite y(row+column)+20,5
+          bullet(i-74).y = sprite y(i)
+          bullet(i-74).energy = alien.bullet_energy+rnd(50)
+          inc check
+        endif
+      endif
+    next i 
+  else
+    `there are no aliens so next level
+    next_level()
+  endif
+endif
+alien.last_fire = timer()
+endfunction
+
+function get_alien_offsets()
+`finds how wide the alien block is and sets alien.left/right
+local i as integer : local a as integer
+alien.left = -1 : alien.right = -1
+for a = 0 to 9
+  for i = (10+a) to (50+a) step 10
+    if alien.left = - 1
+      if sprite exist(i) then alien.left = sprite x(i)
+    endif
+  next i
+next a
+for a = 9 to 0 step -1
+  for i = (50+a) to (10+a) step -10
+    if alien.right = -1
+      if sprite exist(i) then alien.right = sprite x(i)
+    endif
+  next i  
+next a
+endfunction
+
+function move_aliens()
+`moves the aliens
+local x as integer
+if alien.drop = 0
+  if alien.direction = 0 then dec alien.offset,15 else inc alien.offset,15
+  x = alien.offset
+  for i = 0 to 9
+    if sprite exist((i+10)) then sprite (i+10),x,sprite y(i+10),10
+    if sprite exist((i+20)) then sprite (i+20),x,sprite y(i+20),11
+    if sprite exist((i+30)) then sprite (i+30),x,sprite y(i+30),12
+    if sprite exist((i+40)) then sprite (i+40),x,sprite y(i+40),13
+    if sprite exist((i+50)) then sprite (i+50),x,sprite y(i+50),14
+    inc x,35
+  next i
+  inc alien.moves
+  get_alien_offsets()
+else
+  drop_aliens()
+  alien.drop = 0
+endif
+if alien.left < 20 and alien.direction = 0
+  alien.direction = 1
+  if alien.moves > alien.drop_rate then alien.moves = 0 : alien.drop = 1
+endif
+if alien.right > 600 and alien.direction = 1
+  alien.direction = 0
+  if alien.moves > alien.drop_rate then alien.moves = 0 : alien.drop = 1
+endif
+alien.last_move = timer()
+endfunction
+
+function control_player()
+if leftkey() then dec player.x,(300.0/player.fps)
+if rightkey() then inc player.x,(300.0/player.fps)
+if shiftkey() and sprite exist(5)=0 then sprite 5,sprite x(1)+10,sprite y(1),5 : bullet(0).y = sprite y(5) : bullet(0).energy = 50
+if player.x < 5 then player.x = 5
+if player.x > 605 then player.x = 605
+sprite 1,player.x,sprite y(1),1
+endfunction
+
+function next_level()
+`does stuff required to play the next level
+local x as integer
+inc player.lives  : alien.moves = 0 : inc alien.bullet_energy,10
+if alien.drop_rate > 10 then dec alien.drop_rate,5
+if alien.speed > 50 then dec alien.speed,50
+if alien.fire_rate > 50 then dec alien.fire_rate,50
+`position alien sprites
+x = 140 : alien.offset = x : alien.direction = rnd(1)
+for i = 0 to 9
+  sprite (i+10),x,20,10
+  sprite (i+20),x,60,11
+  sprite (i+30),x,100,12
+  sprite (i+40),x,140,13
+  sprite (i+50),x,180,14 : inc x,35
+next i
+alien.offset = 140 : alien.direction = rnd(1)
+get_alien_offsets() : make_shields()
+endfunction
+
+function new_game()
+local i as integer : local x as integer
+sprite 1,(screen width()/2)-10,screen height()-35,1 : player.x = sprite x(1)
+alien.offset = 140 : alien.direction = rnd(1) : alien.drop_rate = 40
+alien.speed = 400 : alien.fire_rate = 300 : alien.last_move = timer()
+player.score = 0 : player.lives = 3 : player.game_over = 0
+alien.last_fire = alien.last_move : alien.bullet_energy = 30
+x = alien.offset : alien.fire_chance = 1
+make_shields()
+`position alien sprites
+for i = 0 to 9
+  sprite (i+10),x,20,10
+  sprite (i+20),x,60,11
+  sprite (i+30),x,100,12
+  sprite (i+40),x,140,13
+  sprite (i+50),x,180,14 : inc x,35
+next i
+endfunction

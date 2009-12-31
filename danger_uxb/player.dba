@@ -1,0 +1,184 @@
+`player related functions
+
+function player_loselife()
+  `deducts a life from the player and restarts the map
+  dec game.lives
+  if game.lives < 1
+    `game over
+    stop = 1
+  else
+    box 0,0,screen width(),screen height()
+    sync
+    wait 50
+    cls
+    sync
+    wait 200
+    new_map()
+  endif
+endfunction
+
+function player_control()
+  `changes player.direc if required
+  if timer() - player.last_input > player.input_delay
+    if leftkey() then player.direc = 1
+    if rightkey() then player.direc = 2
+    if upkey() then player.direc = 3
+    if downkey() then player.direc = 4
+    `scrolling
+    `left 'z'=44 or '<'=51
+    if scancode() = 44 or scancode() = 51 then player.direc = 5
+    `right 'x'=45 or '>'=52
+    if scancode() = 45 or scancode() = 52 then player.direc = 6
+    player.last_input = timer()
+  endif
+endfunction
+
+function player_move_ok(x as integer,y as integer)
+  `checks if map(x,y) is ok for the player to move into
+  local ok as integer
+  ok = 0
+  if x > -1 and x < 14 and y > -1 and y < 14
+    if map(x,y) > 0 and map(x,y) < 4 then ok = 1
+  endif
+endfunction ok
+
+function player_move_away()
+  `moves the player away from defused tnt square in r,l,u,d order
+  `move the player away from the square in r,l,u,d order
+  if player_move_ok(player.x+1,player.y)
+    inc player.x
+  else
+    if player_move_ok(player.x-1,player.y)
+      dec player.x
+    else
+      if player_move_ok(player.x,player.y-1)
+        dec player.y
+      else
+        if player_move_ok(player.x,player.y+1)
+          inc player.y
+        else
+          `
+        endif
+      endif
+    endif
+  endif
+  map(player.x,player.y) = 0
+endfunction
+
+function player_move()
+  `moves player if player.direc > 0
+  local x as integer : local y as integer
+  select player.direc
+    `left
+    case 1
+      x = player.x - 1
+      if x < 0 then x = 13
+      if map(x,player.y) > 0
+        player.x = x
+        select map(x,player.y)
+          case 1 : inc game.score,20 : map(x,player.y) = 0 : endcase
+          case 2 : inc game.score,500 : map(x,player.y) = 0 : endcase
+          case 3 : `tnt
+            if new_tnt() then exitfunction
+            map(player.x,player.y) = 4
+            inc tnt.skull
+            player_move_away()
+            inc game.score,10*val(tnt_time())
+            exitfunction
+          endcase
+          case 4 : player_loselife() : endcase
+        endselect
+      endif
+    endcase
+    `right
+    case 2
+      x = player.x + 1
+      if x > 13 then x = 0
+      if map(x,player.y) > 0
+        player.x = x
+        select map(x,player.y)
+          case 1 : inc game.score,20 : map(x,player.y) = 0 : endcase
+          case 2 : inc game.score,500 : map(x,player.y) = 0 : endcase
+          case 3 : `tnt
+            if new_tnt() then exitfunction
+            map(x,player.y) = 4
+            inc tnt.skull
+            player_move_away()
+            inc game.score,10*val(tnt_time())
+            exitfunction
+          endcase
+          case 4 : player_loselife() : endcase
+        endselect
+        map(x,player.y) = 0
+      endif
+    endcase
+    
+    `up
+    case 3
+      y = player.y - 1
+      if y < 0 then y = 13
+      if map(player.x,y) > 0
+        player.y = y
+        select map(player.x,y)
+          case 1 : inc game.score,20 : map(player.x,y) = 0 : endcase
+          case 2 : inc game.score,500 : map(player.x,y) = 0 : endcase
+          case 3 : `tnt
+            if new_tnt() then exitfunction
+            map(player.x,y) = 4
+            inc tnt.skull
+            player_move_away()
+            inc game.score,10*val(tnt_time())
+            exitfunction
+          endcase
+          case 4 : player_loselife() : endcase
+        endselect
+      endif
+    endcase
+    `down
+  
+    case 4
+      y = player.y + 1
+      if y > 13 then y = 0
+      if map(player.x,y) > 0
+        player.y = y
+        select map(player.x,y)
+          case 1 : inc game.score,20 : map(player.x,y) = 0 : endcase
+          case 2 : inc game.score,500 : map(player.x,y) = 0 : endcase
+          case 3 : `tnt
+            if new_tnt() then exitfunction
+            map(player.x,y) = 4
+            inc tnt.skull
+            player_move_away()
+            inc game.score,10*val(tnt_time())
+            exitfunction
+          endcase
+          case 4 : player_loselife() : endcase
+        endselect
+      endif
+    endcase
+      
+    `scroll left
+    case 5
+      dec player.x
+      if player.x < 0 then player.x = 13
+      y = map(0,player.y)
+      for x = 1 to 13
+        map(x-1,player.y) = map(x,player.y)
+      next x
+      map(13,player.y) = y
+    endcase
+    `scroll right
+    case 6
+      inc player.x
+      if player.x > 13 then player.x = 0
+      y = map(13,player.y)
+      for x = 12 to 0 step -1
+        map(x+1,player.y) = map(x,player.y)
+      next x
+      map(0,player.y) = y
+    endcase
+  endselect
+
+  
+  player.direc = 0
+endfunction

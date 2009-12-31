@@ -1,0 +1,54 @@
+version=DBP1.00
+;****DarkBASIC Professional Project****
+;[Created by BLUE IDE - version 1.0.0]
+;Basic project details
+project name=danger_UXB
+project comments=
+;
+;Files
+final source=_Temp.dbsource
+main=main.dba
+include1=intro.dba
+include2=score.dba
+include3=draw.dba
+include4=boot.dba
+include5=player.dba
+include6=tnt.dba
+executable=danger_UXB.exe
+build type=exe
+ 
+;Debug Mode YES/NO
+CLI=NO
+ 
+;====Media Settings====
+compression=NO
+encryption=NO
+media root path=C:\Program Files\Dark Basic Software\Dark Basic Professional\Projects\danger_UXB\
+ 
+;====Included Media====
+ 
+;> Cursors
+ 
+;> Icons
+ 
+;====Other Settings====
+app title=DarkBASIC Pro Project
+graphics mode=window
+fullscreen resolution=640x480x16
+window resolution=800x600
+compression=NO
+encryption=NO
+ 
+;====Version Information====
+vercomments=
+vercompany=
+vercopyright=
+verfiledesc=
+verfilename=
+verfilenumber=v1.0
+verinternal=
+verproduct=
+verproductnumber=v1.0
+vertrademark=
+ 
+;====Project Organisation====

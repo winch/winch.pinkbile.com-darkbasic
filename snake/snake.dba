@@ -1,0 +1,363 @@
+`Project: snake
+`Created: 23/11/2003 19:54:04
+`Code by the_winch : d_d@glay.org : http://winch.dbpcommunity.com/
+`Use as you wish
+
+sync off
+disable escapekey : randomize timer()
+
+`make media
+create bitmap 1,10,10
+box 5,0,10,5
+get image 4,0,0,10,10,1 : `smallest food
+box 5,5,10,10
+get image 3,0,0,10,10,1
+box 0,5,10,10
+get image 2,0,0,10,10,1
+box 0,0,10,10
+get image 1,0,0,10,10,1 : `bigest food and snake segment
+ink rgb(255,0,0),0
+box 0,0,10,10
+get image 5,0,0,10,10,1 : `snake head
+ink rgb(255,255,255),rgb(0,0,0)
+delete bitmap 1
+
+`load a background if exists
+if file exist("back.jpg")
+  load image "back.jpg",10,1
+endif
+
+type stat_t
+  start as integer
+  finish as integer
+  eats as integer
+  eat_0 as integer
+  eat_1 as integer
+  eat_2 as integer
+  eat_3 as integer
+  eat_4 as integer
+  average as string
+  distance as integer
+  away as integer
+  away_last as integer
+endtype
+global stat as stat_t
+
+type food_t
+  last_eaten as integer
+  age as integer
+  size as integer
+endtype
+global food as food_t
+
+type snake_t
+  seg as integer
+  seg_wait as integer
+  direc as integer
+  speed as integer
+  selected_speed as integer
+  last_move as integer
+  stop as integer
+endtype
+`snake.direc 0=up 1=down 2=left 3=right
+global snake as snake_t
+
+dim scores(9) as integer
+
+i as integer s as string : a as integer : c as integer
+b as integer
+`Load longes_snake
+if file exist("score.txt")
+  open to read 1,"score.txt"
+    for c = 0 to 9
+      read byte 1,a
+      for i = 1 to a
+        read byte 1,b
+        s = s + chr$(b)
+      next i
+      scores(c) = val(s) : s = ""
+    next c
+  close file 1
+else
+  for i = 0 to 9
+    scores(i) = 10
+  next i
+  save_score()
+endif
+
+`Main Loop
+stop as integer : s as string : tot as float
+repeat
+  stop = select_speed()
+  if stop = 1
+    game()
+    lock pixels
+    if snake.seg > scores(snake.selected_speed)
+      scores(snake.selected_speed) = snake.seg
+      msgbox("You beat the previous longest snake!",0,"Snake!")
+      save_score()
+    endif
+    tot = stat.eats + stat.eat_0
+    s =   "Len : "+str$(snake.seg)+" : "+str$(int((snake.seg/3072.0)*(100.0/1.0)))+"%"+chr$(10)+chr$(10)
+    s = s+"All : "+str$(int(tot))+" : "+str$(int((tot/tot)*(100.0/1.0)))+"%"+chr$(10)
+    s = s+"1/1 : "+str$(stat.eat_1)+" : "+str$(int((stat.eat_1/tot)*(100.0/1.0)))+"%"+chr$(10)
+    s = s+"3/4 : "+str$(stat.eat_2)+" : "+str$(int((stat.eat_2/tot)*(100.0/1.0)))+"%"+chr$(10)
+    s = s+"1/2 : "+str$(stat.eat_3)+" : "+str$(int((stat.eat_3/tot)*(100.0/1.0)))+"%"+chr$(10)
+    s = s+"1/4 : "+str$(stat.eat_4)+" : "+str$(int((stat.eat_4/tot)*(100.0/1.0)))+"%"+chr$(10)
+    s = s+"0/0 : "+str$(stat.eat_0)+" : "+str$(int((stat.eat_0/tot)*(100.0/1.0)))+"%"+chr$(10)+chr$(10)
+    s = s+"Play Time : "+get_play_time(stat.finish - stat.start)+chr$(10)
+    tot = stat.finish - stat.start
+    s = s+"Aver Time : "+get_play_time((stat.finish - stat.start)/stat.eats)+" : "+str$(int((((stat.finish - stat.start)/stat.eats)/tot)*(100.0/1.0)))+"%"+chr$(10)
+    s = s+"Away Time : "+get_play_time(stat.away)+" : "+str$(int((stat.away/tot)*(100.0/1.0)))+"%"+chr$(10)
+    save_stat()
+    stop = msgbox(s+chr$(10)+"Game Over"+chr$(10)+"Play Again?",36,"Snake!")
+    unlock pixels
+   else
+     stop = 7
+   endif
+ until stop = 7
+
+`write to -1 to stat.txt so stat_viewer quits
+if file exist("stat.txt") then delete file "stat.txt"
+open to write 1,"stat.txt"
+for i = 0 to 25
+  write string 1,"-1"
+next i
+close file 1
+`Clean up
+for i = 1 to 5000
+  if sprite exist(i) then delete sprite i
+next i
+for i = 1 to 4
+  if image exist(i) then delete image i
+next i
+
+function save_score()
+local s as string : local i as integer : local c as integer : local lenth as integer
+if file exist("score.txt") then delete file "score.txt"
+open to write 1,"score.txt"
+  for c = 0 to 9
+    s = str$(scores(c))
+    write byte 1,len(s)
+    for i = 1 to len(s)
+      write byte 1,asc(mid$(s,i))
+    next i
+  next c
+close file 1
+endfunction
+
+function get_play_time(in as integer)
+`converts time in ms to string wiht MM:SS
+local out as string : local mins as integer
+in = in / 1000
+if in > 60 then mins = in / 60 else mins = 0
+in = in-(60*mins)
+if in = 60 then in = 0 : inc mins
+if mins < 10 then out = "0"
+out = out + str$(mins)+":"
+if in < 10 then out = out + "0"
+out = out + str$(in)
+endfunction out
+
+function select_speed()
+local last_key as integer
+for last_key = 1 to 5000
+  if sprite exist(last_key) then delete sprite last_key
+next last_key
+last_key = scancode()
+repeat
+  cls 0
+  if upkey() and scancode() <> last_key then inc snake.selected_speed
+  if downkey() and scancode() <> last_key then dec snake.selected_speed
+  if snake.selected_speed < 0 then snake.selected_speed = 0
+  if snake.selected_speed > 9 then snake.selected_speed = 9
+  select snake.selected_speed
+    case 0 : snake.speed = 10 : endcase
+    case 1 : snake.speed = 25 : endcase
+    case 2 : snake.speed = 50 : endcase
+    case 3 : snake.speed = 75 : endcase
+    case 4 : snake.speed = 100 : endcase
+    case 5 : snake.speed = 150 : endcase
+    case 6 : snake.speed = 200 : endcase
+    case 7 : snake.speed = 250 : endcase
+    case 8 : snake.speed = 300 : endcase
+    case 9 : snake.speed = 350 : endcase
+  endselect
+  text 0,0,"Use arrow keys to set game speed, 0 = fastest. Return to start game."
+  text 0,15,"Speed : "+str$(snake.selected_speed)
+  if returnkey() then stop = 1
+  if escapekey() then stop = 2
+  last_key = scancode()
+until stop > 0
+endfunction stop
+
+function distance()
+local result as integer : local x as float : local y as float
+if sprite exist(5000)
+  if sprite x(1) > sprite x(5000) then x = sprite x(1) - sprite x(5000) else x = sprite x(5000) - sprite x(1)
+  if sprite y(1) > sprite y(5000) then y = sprite y(1) - sprite y(5000) else y = sprite y(5000) - sprite y(1)
+  x = x * x : y = y * y
+  result = (sqrt((x)+(y))) / 10
+else
+  result = 0
+endif
+endfunction result
+
+function game()
+local i as integer : local move_x as integer : local move_y as integer
+local move as integer : local last_direc as integer
+`reset variables
+for i = 1 to snake.seg
+  if sprite exist(i) then delete sprite i
+next i
+food.last_eaten = timer() : snake.stop = 0
+snake.seg = 1 : snake.seg_wait = 3
+snake.direc = 3 : last_direc = snake.direc : stat.away = 0
+stat.eats = 0 : stat.eat_1 = 0 : stat.eat_2 = 0 : stat.eat_3 = 0 : stat.eat_4 = 0 : stat.eat_0 = 0
+snake.last_move = timer() : stat.start = snake.last_move : stat.average = "00:00"
+sprite 1,320,240,5
+if file exist("stat.txt") then delete file "stat.txt"
+` Game Loop
+repeat
+cls 0
+`paste background
+if image exist(10) then paste image 10,0,0
+`Player input
+if upkey() and last_direc <> 1 then snake.direc = 0
+if downkey() and last_direc <> 0 then snake.direc = 1
+if leftkey() and last_direc <> 3 then snake.direc = 2
+if rightkey() and last_direc <> 2 then snake.direc = 3
+`Snake movement
+if timer() - snake.last_move > snake.speed
+  if snake.seg_wait > 0
+    inc snake.seg : sprite snake.seg,0,0,1
+    dec snake.seg_wait
+  endif
+  if snake.seg > 1
+    for i = snake.seg to 2 step -1
+      sprite i,sprite x(i-1),sprite y(i-1),1
+    next i
+  endif
+  if snake.direc = 0 then move_x = 0 : move_y = -10
+  if snake.direc = 1 then move_x = 0 : move_y = +10
+  if snake.direc = 2 then move_x = -10 : move_y = 0
+  if snake.direc = 3 then move_x = +10 : move_y = 0
+  sprite 1,sprite x(1)+move_x,sprite y(1)+move_y,sprite image(1)
+  move = 1 : last_direc = snake.direc
+  stat.distance = distance()
+  if stat.distance = 0
+    stat.away_last = 0
+  else
+    if stat.distance > stat.away_last then inc stat.away,snake.speed
+    stat.away_last = stat.distance
+  endif
+  snake.last_move = timer()
+endif
+`food creation
+if timer() - food.last_eaten > (snake.speed*3) and sprite exist(5000)=0
+  if rnd(3) = 3
+    food.age = timer() : food.size = 1
+    sprite 5000,(rnd(63)*10),(rnd(47)*10),food.size
+  else
+    food.last_eaten = timer()
+  endif
+endif
+`food degenerating
+if sprite exist(5000)
+  i = timer() - food.age
+  if i > 6000 then sprite 5000,sprite x(5000),sprite y(5000),2
+  if i > 12000 then sprite 5000,sprite x(5000),sprite y(5000),3
+  if i > 18000 then sprite 5000,sprite x(5000),sprite y(5000),4
+  if i > 24000 then delete sprite 5000 : inc stat.eat_0
+endif
+`food eating
+if move = 1 : `snake moved this loop
+  for i = 1 to snake.seg
+    if sprite exist(5000)
+      if sprite collision(5000,i)=1 and sprite collision(i,5000)=1 : `if part of the snake hits food
+        select sprite image(5000)
+          case 4 : inc snake.seg_wait,1 : inc stat.eat_4 : endcase
+          case 3 : inc snake.seg_wait,2 : inc stat.eat_3 : endcase
+          case 2 : inc snake.seg_wait,3 : inc stat.eat_2 : endcase
+          case 1 : inc snake.seg_wait,5 : inc stat.eat_1 : endcase
+        endselect
+        delete sprite 5000
+        inc stat.eats
+        stat.average = get_play_time((timer() - stat.start)/stat.eats)
+      endif
+    endif
+    `check for head/body collision
+    if i > 1
+      if sprite collision(1,i) and sprite collision(i,1) then snake.stop = 1
+    endif
+  next i
+  `Check head is still in screen
+  if sprite x(1) < 0 or sprite x(1) >630 or sprite y(1) < 0 or sprite y(1) > 470 then snake.stop = 1
+endif
+`stat.txt file writeing
+save_stat()
+move = 0
+text 0,0,"Size: "+str$(snake.seg)+" Eaten: "+str$(stat.eats)+" Play time: "+get_play_time(timer() - stat.start)+" Ave: "+stat.average+" Dist: "+str$(stat.distance)+" A: "+get_play_time(stat.away)
+text 630-text width("Best: "+str$(scores(snake.selected_speed))),0,"Best: "+str$(scores(snake.selected_speed))
+if escapekey() then snake.stop = 1
+until snake.stop = 1
+stat.finish = timer()
+endfunction
+
+function save_stat()
+`if file exist("stat.txt") then delete file "stat.txt"
+  open to write 2,"stat.txt"
+    write string 2,str$(stat.start)
+    write string 2,str$(timer())
+    write string 2,str$(snake.stop)
+    write string 2,str$(snake.seg)
+    write string 2,str$(stat.eats)
+    write string 2,str$(stat.eat_1)
+    write string 2,str$(stat.eat_2)
+    write string 2,str$(stat.eat_3)
+    write string 2,str$(stat.eat_4)
+    write string 2,str$(stat.eat_0)
+    write string 2,str$(sprite x(1))
+    write string 2,str$(sprite y(1))
+    if sprite exist(5000)
+      write string 2,str$(sprite x(5000))
+      write string 2,str$(sprite y(5000))
+    else
+      write string 2,"-1"
+      write string 2,"-1"
+    endif
+  close file 2
+endfunction
+remstart
+type stat_t
+  start as integer
+  finish as integer
+  eats as integer
+  eat_0 as integer
+  eat_1 as integer
+  eat_2 as integer
+  eat_3 as integer
+  eat_4 as integer
+  average as string
+  distance as integer
+  away as integer
+  away_last as integer
+endtype
+global stat as stat_t
+
+type food_t
+  last_eaten as integer
+  age as integer
+  size as byte
+endtype
+global food as food_t
+
+type snake_t
+  seg as integer
+  seg_wait as integer
+  direc as byte
+  speed as integer
+  selected_speed as integer
+  last_move as integer
+endtype
+remend

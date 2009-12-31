@@ -1,0 +1,101 @@
+`*** Include File: menu.dba ***
+`Created: 02/11/03 06:20:46
+`code by the_winch
+`menu functions
+
+function menu()
+local i as integer : local stop as integer : local move_x as integer : local move_y as integer
+local selected as integer : local last_key as integer : local last_click as integer
+local last_x as integer : local last_y as integer : local last_selection as integer
+`load images
+load image "menu\start.png",51,1
+load image "menu\40lines.png",52,1
+load image "menu\highscore.png",53,1
+load image "menu\quit.png",54,1
+load image "menu\left.png",55,1
+load image "menu\right.png",56,1
+load image "menu\0.png",60,1
+load image "menu\1.png",61,1
+load image "menu\2.png",62,1
+load image "menu\3.png",63,1
+load image "menu\4.png",64,1
+load image "menu\5.png",65,1
+load image "menu\6.png",66,1
+load image "menu\7.png",67,1
+load image "menu\8.png",68,1
+load image "menu\9.png",69,1
+ink rgb(128,128,128),0 : `change the ink to grey so the version info shows up
+`sprites
+selected = game.option
+position_sprites(selected)
+last_key = scancode() : last_x = mousex() : last_y = mousey() : last_click = mouseclick()
+repeat
+  cls
+  move_x = rnd(2)-1 : move_Y = rnd(2)-1
+  if selected = 0 then sprite 1,sprite x(1)+move_x,sprite y(1)+move_y,51
+  if selected = 1 then sprite 2,sprite x(2)+move_x,sprite y(2)+move_y,52
+  if selected = 2 then sprite 3,sprite x(3)+move_x,sprite y(3)+move_y,53
+  if selected = 3 then sprite 4,sprite x(4)+move_x,sprite y(4)+move_y,54
+  `keyboard selection
+  if downkey() and last_key <> scancode() then last_key = scancode() : inc selected : position_sprites(selected)
+  if upkey() and last_key <> scancode() then last_key = scancode() : dec selected : position_sprites(selected)
+  if selected = 0
+    if rightkey() and last_key <> scancode() then last_key = scancode() : inc game.start_level
+    if leftkey() and last_key <> scancode() then last_key = scancode() : dec game.start_level
+  endif
+  if returnkey() and last_key <> scancode() then stop = 1
+  `mouse selection
+  if mousex() <> last_x and mousey() <> last_y
+    if mousex() > 50 and mousex() < 275 and mousey() > 30 and mousey() < 145 then selected = 0
+    if mousex() > 50 and mousex() < 265 and mousey() > 140 and mousey() < 235 then selected = 1
+    if mousex() > 40 and mousex() < 290 and mousey() > 230 and mousey() < 340 then selected = 2
+    if mousex() > 55 and mousex() < 280 and mousey() > 315 and mousey() < 445 then selected = 3
+    if selected <> last_selected then position_sprites(selected)
+  else
+    if mouseclick() = 1 and last_click <> 1
+      if selected = 0 and mousex() > 320 and mousex() < 410 and mousey() > 35 and mousey() < 90 then dec game.start_level
+      if selected = 0 and mousex() > 500 and mousex() < 585 and mousey() > 35 and mousey() < 90 then inc game.start_level
+    endif
+  endif
+  last_key = scancode() : last_x = mousex() : last_y = mousey() : last_click = mouseclick()
+  if selected < 0 then selected = 3 : position_sprites(selected)
+  if selected > 3 then selected = 0 : position_sprites(selected)
+  if game.start_level < 0 then game.start_level = 0
+  if game.start_level > 9 then game.start_level = 9
+  sprite 7,425,25,60+game.start_level
+  last_selected = selected
+  if mousex() < 300 then if mouseclick() = 1 then stop = 1
+  `show website and version
+  text 0, screen height() - 15, web
+  text (screen width()-text width(version)-5),(screen height()-15),version
+until stop = 1
+`remove menu images
+for i = 1 to 7
+  if sprite exist(i) then delete sprite i
+next i
+for i = 50 to 69
+if image exist(i) then delete image i
+next i
+`change the ink back to black
+ink rgb(0,0,0),0
+endfunction selected
+
+function position_sprites(selected as integer)
+  sprite 1,40,0,51
+  sprite 2,40,100,52
+  sprite 3,40,200,53
+  sprite 4,40,280,54
+  sprite 5,325,35,55
+  sprite 6,500,35,56
+  sprite 7,425,25,60+game.start_level
+  if selected = 0
+    set sprite diffuse 5,255,255,255
+    set sprite diffuse 6,255,255,255
+    set sprite diffuse 7,255,255,255
+  else
+    set sprite diffuse 5,70,70,70
+    set sprite diffuse 6,70,70,70
+    set sprite diffuse 7,70,70,70
+  endif
+endfunction
+

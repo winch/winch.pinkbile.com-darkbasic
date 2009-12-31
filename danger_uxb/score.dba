@@ -1,0 +1,118 @@
+`high score table functions
+
+function scores_display()
+  `shows the highscore table on the screen
+  local i as integer : local x as integer : local y as integer : local s as string
+  load image "image\score"+str$(game.skill)+".png",10000,1
+  cls
+  paste image 10000,0,0
+  y = 150
+  for i = 0 to 9
+    x = 180
+    `score
+    text x,y,scores(game.skill-1,i).score
+    inc x,200
+    `name
+    text x,y,scores(game.skill-1,i).name
+    inc x,200
+    `rateing
+    if val(scores(game.skill-1,i).score) > 1000 then s = "poor"
+    if val(scores(game.skill-1,i).score) > 10000 then s = "ok"
+    if val(scores(game.skill-1,i).score) > 50000 then s = "good"
+    if val(scores(game.skill-1,i).score) > 100000 then s = "very good"
+    text x,y,s
+    inc y,30
+  next i
+  sync
+  repeat
+    `
+  until scancode() <> 0 or mouseclick() > 0
+  delete image 10000
+endfunction
+
+function scores_check()
+  `checks if the player got a highscore
+  local i as integer : local high as integer : name as string
+  high = -1
+  for i = 9 to 0 step -1
+    if game.score > val(scores(game.skill-1,i).score) then high = i
+  next i
+  if high > -1
+    `beat high score
+    for i = 8 to high step -1
+      scores(game.skill-1,i+1).name = scores(game.skill-1,i).name
+      scores(game.skill-1,i+1).score = scores(game.skill-1,i).score 
+    next i
+    `get name
+    name = input dialog(app_name,"You made it to the highscore table."+chr$(10)+"Enter your name, max 15 characters")
+    `check name is not longer than 15
+    if len(name) > 15 then name = left$(name,15)
+    scores(game.skill-1,high).name = name
+    scores(game.skill-1,high).score = str$(game.score)
+  endif
+  `diaplay highscore table
+  repeat : until scancode() = 0
+  scores_display()
+endfunction
+
+function scores_load()
+  `loads the high score table
+  local score as string : local i as integer : local ii as integer : local length as integer : local b as integer : local s as integer
+  score = "score.txt"
+  if file exist(score)
+    `load the file
+    open to read 1,score
+      for s = 0 to 2
+        for i = 0 to 9
+          `read name
+          scores(s,i).name = ""
+          read byte 1,length
+          for ii = 1 to length
+            read byte 1,b
+            scores(s,i).name = scores(s,i).name + chr$(b)
+          next ii
+          `read score
+          scores(s,i).score = ""
+          read byte 1,length
+          for ii = 1 to length
+            read byte 1,b
+            scores(s,i).score = scores(s,i).score + chr$(b)
+          next ii
+        next i
+      next s
+    close file 1
+  else
+    `if no score file exists fill scores() with default values
+    for s = 0 to 2
+      for i = 0 to 9
+        scores(s,i).name = "The Computer"
+        scores(s,i).score = "1000"
+      next i
+    next s
+  endif
+endfunction
+
+function scores_save()
+  `saves the highscore table
+  local score as string : local i as integer : local ii as integer : local length as integer : local s as integer
+  score = "score.txt"
+  if file exist(score) then delete file score
+  open to write 1,score
+    for s = 0 to 2
+      for i = 0 to 9
+        `write name
+        length = len(scores(s,i).name)
+        write byte 1,length
+        for ii = 1 to length
+          write byte 1,asc(mid$(scores(s,i).name,ii))
+        next ii
+        `write score
+        length = len(scores(s,i).score)
+        write byte 1,length
+        for ii = 1 to length
+          write byte 1,asc(mid$(scores(s,i).score,ii))
+        next ii
+      next i
+    next s
+  close file 1
+endfunction

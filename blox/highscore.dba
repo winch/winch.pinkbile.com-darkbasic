@@ -1,0 +1,223 @@
+`*** Include File: highscore.dba ***
+`Created: 05/11/03 11:17:45
+`functions required for highscore table management/display
+
+function scores_getname()
+`get the users name for the highscore table entry
+local name as string : local pointer as integer : local last_key as integer
+local stop as integer
+load image "menu\enter.png",70,1
+clear entry buffer : last_key = scancode()
+repeat
+  cls 0
+  if scancode() = 14 and last_key <> scancode() and len(name) > 0 then name = left$((name,len(name)-1))
+  if asc(entry$()) <> 8 and len(name) < 16 then name = name + entry$()
+  last_key = scancode()
+  clear entry buffer
+  pointer = 225 + text width(name)
+  paste image 70,200,200
+  text 220,250,name
+  line pointer,254,pointer,265
+  if returnkey() then repeat until returnkey()=0 : stop = 1
+until stop = 1
+if image exist(70) then delete image 70
+clear entry buffer
+endfunction name
+
+function scores_check()
+`checks the score of the last game to see if it made it on the score table
+local i as integer : higher as integer
+higher = -1
+if game.option = 0  : `normal game
+  if game.score > val(scores(14).score) then higher = 1
+  if higher = 1 `the game.score is high enoug to go on the board
+    higher = 14
+    for i = 13 to 0 step - 1 : `move all scores lower than game.score down a slot
+      if game.score > val(scores(i).score)
+        scores(i+1).name = scores(i).name
+        scores(i+1).time = scores(i).time
+        scores(i+1).lines = scores(i).lines
+        scores(i+1).score = scores(i).score
+        higher = i
+      endif
+    next i
+    `put the new score in the correct place
+    scores(higher).name = scores_getname()
+    scores(higher).time = str$(game.end_time)
+    scores(higher).lines = str$(game.lines)
+    scores(higher).score = str$(game.score)
+    scores_save() : `save the score table to disk
+  endif
+endif
+if game.option = 1 and game.lines > 39 : `40 lines
+  if game.end_time < val(scores(29).time) then higher = 1
+  if higher = 1 `the game.score is high enoug to go on the board
+    higher = 29
+    for i = 28 to 15 step - 1 : `move all scores lower than game.score down a slot
+      if game.end_time < val(scores(i).time)
+        scores(i+1).name = scores(i).name
+        scores(i+1).time = scores(i).time
+        scores(i+1).lines = scores(i).lines
+        scores(i+1).score = scores(i).score
+        higher = i
+      endif
+    next i
+    `put the new score in the correct place
+    scores(higher).name = scores_getname()
+    scores(higher).time = str$(game.end_time)
+    scores(higher).lines = str$(game.lines)
+    scores(higher).score = str$(game.score)
+    scores_save() : `save the scoretable to disk
+  endif
+endif
+if higher = -1
+  load dll "user32.dll",1
+    hwnd = call dll (1,"GetActiveWindow")
+    call dll 1,"MessageBoxA",hwnd,"Game Over!"+chr$(13)+"You did not get a high score.","Game Over!",0
+  delete dll 1
+endif
+game.option = 2
+endfunction
+
+function scores_show()
+`displays the highscore table
+local stop as integer : local last_key as integer : local last_click
+local i as integer : local a as integer
+load image "menu\highscoretable.png",50,1
+ink rgb(255,255,255),rgb(0,0,0)
+last_key = scancode() : last_click = mouseclick()
+repeat
+  cls 0
+  paste image 50,75,0
+  `show scores
+  a = 135
+  text 90,(a-30),"Normal Game"
+  text 20,a,"Name"
+  text 150,a,"Time"
+  text 200,a,"Lines"
+  text 250,a,"Score" : inc a,30
+  for i = 0 to 14
+    text 20,a,scores(i).name
+    text 150,a,convert_time(val(scores(i).time))
+    text 200,a,scores(i).lines
+    text 250,a,scores(i).score
+    inc a,15
+  next i
+  a = 130
+  text 420,(a-30),"40 Lines Game"
+  text 330,a,"Name"
+  text 470,a,"Time"
+  text 520,a,"Lines"
+  text 570,a,"Score" : inc a,30
+  for i = 15 to 29
+    text 330,a,scores(i).name
+    text 470,a,convert_time(val(scores(i).time))
+    text 520,a,scores(i).lines
+    text 570,a,scores(i).score
+    inc a,15
+  next i
+  text 150,420,"Press enter or click to return to main menu"
+  if returnkey() and scancode() <> last_key then stop = 1
+  if mouseclick() and mouseclick() <> last_click = 1 then stop = 2
+  last_key = scancode() : last_click = mouseclick()
+until stop > 0
+if stop = 1 then repeat until scancode() <> last_key
+if stop = 2 then repeat until mouseclick() <> last_click
+`cleanup
+if image exist(50) then delete image 50
+ink rgb(0,0,0),rgb(0,0,0)
+cls 0
+endfunction
+
+function scores_save()
+local i as integer : local a as integer : local length as integer
+if file exist("score.txt") then delete file "score.txt"
+open to write 1,"score.txt"
+  for i = 0 to 29
+    length = len(scores(i).name)
+    write byte 1,length
+    for a = 0 to length
+      write byte 1,asc(mid$(scores(i).name,a))
+    next a
+    length = len(scores(i).time)
+    write byte 1,length
+    for a = 0 to length
+      write byte 1,asc(mid$(scores(i).time,a))
+    next a
+    length = len(scores(i).lines)
+    write byte 1,length
+    for a = 0 to length
+      write byte 1,asc(mid$(scores(i).lines,a))
+    next a
+    length = len(scores(i).score)
+    write byte 1,length
+    for a = 0 to length
+      write byte 1,asc(mid$(scores(i).score,a))
+    next a
+  next i
+close file 1
+endfunction
+
+function scores_newfile()
+`Creates a new blank scores.txt file
+local i as integer : local length as integer : local a as integer
+if file exist("score.txt") then delete file "score.txt"
+open to write 1,"score.txt"
+  for i = 0 to 29
+    length = len("Name")
+    write byte 1,length
+    for a = 0 to length
+      write byte 1,asc(mid$("Name",a))
+    next a
+    length = len("1200000")
+    write byte 1,length
+    for a = 0 to length
+      write byte 1,asc(mid$("1200000",a))
+    next a
+    length = len("1")
+    write byte 1,length
+    for a = 0 to length
+      write byte 1,asc(mid$("1",a))
+    next a
+    length = len("1")
+    write byte 1,length
+    for a = 0 to length
+      write byte 1,asc(mid$("1",a))
+    next a
+  next i
+close file 1
+scores_load()
+endfunction
+
+function scores_load()
+local length as integer : local i as integer : local a as integer : local in as integer
+if file exist("score.txt")
+  open to read 1,"score.txt"
+  for i = 0 to 29
+    read byte 1,length
+    for a = 0 to length
+      read byte 1,in
+      scores(i).name = scores(i).name + chr$(in)
+    next a
+    read byte 1,length
+    for a = 0 to length
+      read byte 1,in
+      scores(i).time = scores(i).time + chr$(in)
+    next a
+    read byte 1,length
+    for a = 0 to length
+      read byte 1,in
+      scores(i).lines = scores(i).lines + chr$(in)
+    next a
+    read byte 1,length
+    for a = 0 to length
+      read byte 1,in
+      scores(i).score = scores(i).score + chr$(in)
+    next a
+  next i
+  close file 1
+else
+scores_newfile()
+endif
+endfunction
+

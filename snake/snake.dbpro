@@ -1,0 +1,22 @@
+version=DBP1.00
+;****DarkBASIC Professional Project****
+;[Created by BLUE IDE - 04]
+;Basic project details
+project name=snake
+;
+;Files
+final source=_Temp.dbsource
+main=snake.dba
+include1=msgbox.dba
+media root path=
+executable=snake.exe
+build=
+CLI=NO
+;====Other Settings====
+app title=DarkBASIC Pro Project
+graphics mode=window
+fullscreen resolution=640x480x16
+window resolution=640x480
+compression=
+encryption=
+;====Project Organisation====

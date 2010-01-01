@@ -71,9 +71,17 @@ global dim bullet(6) as bullet_t
 `y=bullet ypos
 `energy=number of shield pixels bullet can destroy
 
-global dim shield1(49,39) as integer
-global dim shield2(49,39) as integer
-global dim shield3(49,39) as integer
+type shield_size_t
+  x as integer
+  y as integer
+endtype
+global shield_size as shield_size_t
+shield_size.x = 49
+shield_size.y = 39
+
+global dim shield1(shield_size.x,shield_size.y) as integer
+global dim shield2(shield_size.x,shield_size.y) as integer
+global dim shield3(shield_size.x,shield_size.y) as integer
 `0=black 1=white
 
 `shield colours
@@ -97,6 +105,7 @@ stop = msgbox("Game over"+chr$(10)+"Play again?",36,"space_inv")
 until stop = 7
 
 save_scores()
+
 `cleanup
 for stop = 1 to 103
   if sprite exist(stop) then delete sprite stop
@@ -206,7 +215,7 @@ next i
 inc low_y,20 :`increase by alien image height to get y at bottom of sprite
 if low_y > player.shield_offset and low_y <= 400
   dec low_y,player.shield_offset
-  for x = 0 to 49
+  for x = 0 to shield_size.x
     for y = low_y to 0 step -1 
       shield1(x,y) = 0
       shield2(x,y) = 0
@@ -239,7 +248,7 @@ if sprite exist(5)
     if (bx+9) > 487 and bx < 537 then shield = 3 : dec bx,487
     for y = by+2 to by-7 step -1
       for x = bx to bx+9
-        if x => 0 and x <= 49 and y => 0 and y <= 39
+        if x => 0 and x <= shield_size.x and y => 0 and y <= shield_size.y
           if bullet(0).energy > 0
             select shield
               case 1
@@ -283,7 +292,7 @@ for i = 75 to 80
       if (bx+9) > 487 and bx < 537 then shield = 3 : dec bx,487
       for y = by-7 to by+2
         for x = bx to bx+9
-          if x => 0 and x <= 49 and y => 0 and y <= 39
+          if x => 0 and x <= shield_size.x and y => 0 and y <= shield_size.y
             if bullet(i-74).energy > 0
               select shield
                 case 1
@@ -326,8 +335,8 @@ function shield_generate(shield as integer)
 local x as integer : local y as integer : length as integer : local i as integer : local in as integer
 if memblock exist(1) = 0 then shield_generate_memblocks()
 in = 12
-for y = 0 to 39
-  for x = 0 to 49
+for y = 0 to shield_size.y
+  for x = 0 to shield_size.x
     if shield = 1 then i = shield1(x,y)
     if shield = 2 then i = shield2(x,y)
     if shield = 3 then i = shield3(x,y)
@@ -349,7 +358,9 @@ endfunction
 function shield_generate_memblocks()
 `Creates the initial membock structure.
 local x as integer : local y as integer : length as integer
-x = 50 : y = 40 : length = (x*y)*4 : inc length,12
+x = shield_size.x + 1
+y = shield_size.y + 1
+length = (x*y)*4 : inc length,12
 make memblock 1,length
 make memblock 2,length
 make memblock 3,length
@@ -362,8 +373,8 @@ function make_shields()
 `fills the shield arrays with the shield pattern so the shield image can
 `be generated
 local x as integer : local y as integer
-for x = 0 to 49
-  for y = 0 to 39
+for x = 0 to shield_size.x
+  for y = 0 to shield_size.y
     shield1(x,y) = 1
     shield2(x,y) = 1
     shield3(x,y) = 1

@@ -29,7 +29,7 @@ sync on. Sync on will grab as much cpu time as possible but will run the game pr
 You need to restart the program for changes to take effect.
 
 I used info and concepts from this site
-http://www.colinfahey.com/2003jan_tetris/tetris_standard_specifications.htm
+http://www.colinfahey.com/tetris/tetris_en.html
 
 the_winch
 thewinch@gmail.com
